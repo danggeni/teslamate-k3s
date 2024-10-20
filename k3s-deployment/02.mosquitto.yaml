@@ -1,0 +1,89 @@
+## mosquitto-conf PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: mosquitto-conf
+  name: mosquitto-conf
+  namespace: teslamate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+## mosquitto-data pvc
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: mosquitto-data
+  name: mosquitto-data
+  namespace: teslamate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mosquitto
+  name: mosquitto
+  namespace: teslamate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+      labels:
+        app: mosquitto
+    spec:
+      containers:
+        - args:
+            - mosquitto
+            - -c
+            - /mosquitto-no-auth.conf
+          image: eclipse-mosquitto:2
+          name: mosquitto
+          volumeMounts:
+            - mountPath: /mosquitto/config
+              name: mosquitto-conf
+            - mountPath: /mosquitto/data
+              name: mosquitto-data
+      restartPolicy: Always
+      volumes:
+        - name: mosquitto-conf
+          persistentVolumeClaim:
+            claimName: mosquitto-conf
+        - name: mosquitto-data
+          persistentVolumeClaim:
+            claimName: mosquitto-data
+
+---
+
+## Mosquitto service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mosquitto
+  name: mosquitto
+  namespace: teslamate
+spec:
+  ports:
+    - name: mosquitto
+      port: 1883
+  selector:
+    app: mosquitto

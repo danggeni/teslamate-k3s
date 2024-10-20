@@ -1,0 +1,87 @@
+## Teslamate PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: teslamate-claim0
+  name: teslamate-claim0
+  namespace: teslamate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+## Teslamate Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: teslamate
+  name: teslamate
+  namespace: teslamate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teslamate
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: teslamate
+    spec:
+      containers:
+        - env:
+            - name: DATABASE_HOST
+              value: database.teslamate.svc.cluster.local
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: teslamate
+            - name: DATABASE_PASS
+              value: teslamate1004
+            - name: DATABASE_USER
+              value: teslamate
+            - name: MQTT_HOST
+              value: mosquitto.teslamate.svc.cluster.local
+            - name: ENCRYPTION_KEY
+              value: input_encryption_key
+          image: teslamate/teslamate:1.29.1
+          name: teslamate
+          ports:
+            - containerPort: 4000
+          securityContext:
+            capabilities:
+              drop:
+                - all
+          volumeMounts:
+            - mountPath: /opt/app/import
+              name: teslamate-claim0
+      restartPolicy: Always
+      volumes:
+        - name: teslamate-claim0
+          persistentVolumeClaim:
+            claimName: teslamate-claim0
+
+---
+## Teslamate Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: teslamate
+  name: teslamate
+  namespace: teslamate
+spec:
+  #type: NodePort
+  ports:
+    - name: "4000"
+      port: 4000
+      targetPort: 4000
+      #nodePort: 30010
+  selector:
+    app: teslamate

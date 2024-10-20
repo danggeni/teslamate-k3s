@@ -1,0 +1,72 @@
+## Database PVC 
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: teslamate-db
+  name: teslamate-db
+  namespace: teslamate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+## Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: database
+  name: database
+  namespace: teslamate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: teslamate
+            - name: POSTGRES_PASSWORD
+              value: teslamate1004
+            - name: POSTGRES_USER
+              value: teslamate
+          image: postgres:16
+          name: database
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: teslamate-db
+      restartPolicy: Always
+      volumes:
+        - name: teslamate-db
+          persistentVolumeClaim:
+            claimName: teslamate-db
+
+---
+
+## Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: database
+  name: database
+  namespace: teslamate
+spec:
+  ports:
+    - name: database
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: database

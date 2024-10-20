@@ -1,0 +1,80 @@
+## Grafana PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: teslamate-grafana-data
+  name: teslamate-grafana-data
+  namespace: teslamate
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+## Grafana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: teslamate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - env:
+            - name: DATABASE_HOST
+              value: database.teslamate.svc.cluster.local
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: teslamate
+            - name: DATABASE_PASS
+              value: teslamate1004
+            - name: DATABASE_USER
+              value: teslamate
+          image: teslamate/grafana:latest
+          name: grafana
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: teslamate-grafana-data
+      restartPolicy: Always
+      volumes:
+        - name: teslamate-grafana-data
+          persistentVolumeClaim:
+            claimName: teslamate-grafana-data
+
+---
+## Grafana Service 
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: teslamate
+spec:
+  #type: NodePort
+  ports:
+    - name: "3000"
+      port: 3000
+      targetPort: 3000
+      #nodePort: 30012
+  selector:
+    app: grafana
+
