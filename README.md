@@ -37,7 +37,7 @@ step6. k3s-deployment 배포 상태 확인
 ```
 
 step7. Teslamate Service NodePort 지정
-- 01.grafana.yaml 파일의 vi 또는 에디터를 통해 열고 spec부분의 type: NodePort 추가
+- 01.teslamate.yaml 파일의 vi 또는 에디터를 통해 열고 spec부분의 type: NodePort 추가
 - ports의 nodePort: 노트포트 지정(기본값 : 30000-32767 내 지정가능)
 ```yaml
 apiVersion: v1
